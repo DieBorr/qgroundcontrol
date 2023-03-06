@@ -11,6 +11,8 @@ FlyViewPreFlightChecklistPopup  1.0 FlyViewPreFlightChecklistPopup.qml
 FlyViewToolStrip                1.0 FlyViewToolStrip.qml
 FlyViewToolStripActionList      1.0 FlyViewToolStripActionList.qml
 FlyViewVideo                    1.0 FlyViewVideo.qml
+FlyViewVideoWidgetLayer         1.0 FlyViewVideoWidgetLayer.qml
+FlyViewVideoToolStrip           1.0 FlyViewVideoToolStrip.qml
 FlyViewWidgetLayer              1.0 FlyViewWidgetLayer.qml
 GuidedActionActionList          1.0 GuidedActionActionList.qml
 GuidedActionConfirm             1.0 GuidedActionConfirm.qml
