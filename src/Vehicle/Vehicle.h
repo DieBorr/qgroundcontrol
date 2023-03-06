@@ -249,6 +249,11 @@ public:
     Q_PROPERTY(qreal                gimbalPitch                 READ gimbalPitch                                                    NOTIFY gimbalPitchChanged)
     Q_PROPERTY(qreal                gimbalYaw                   READ gimbalYaw                                                      NOTIFY gimbalYawChanged)
     Q_PROPERTY(bool                 gimbalData                  READ gimbalData                                                     NOTIFY gimbalDataChanged)
+    Q_PROPERTY(uint32_t             gimbalStatusFlags           READ gimbalStatusFlags                                              NOTIFY gimbalStatusFlagsChanged)
+    Q_PROPERTY(bool                 gimbalRetracted             READ gimbalRetracted                                                NOTIFY gimbalRetractedChanged)
+    Q_PROPERTY(bool                 gimbalNeutral               READ gimbalNeutral                                                  NOTIFY gimbalNeutralChanged)
+    Q_PROPERTY(bool                 gimbalYawLock               READ gimbalYawLock                                                  NOTIFY gimbalYawLockChanged)
+    Q_PROPERTY(bool                 gimbalClickOnMapActive      READ gimbalClickOnMapActive     WRITE setGimbalClickOnMapActive     NOTIFY gimbalClickOnMapActiveChanged)
     Q_PROPERTY(bool                 isROIEnabled                READ isROIEnabled                                                   NOTIFY isROIEnabledChanged)
     Q_PROPERTY(CheckList            checkListState              READ checkListState             WRITE setCheckListState             NOTIFY checkListStateChanged)
     Q_PROPERTY(bool                 readyToFlyAvailable         READ readyToFlyAvailable                                            NOTIFY readyToFlyAvailableChanged)  ///< true: readyToFly signalling is available on this vehicle
@@ -308,6 +313,9 @@ public:
     Q_PROPERTY(Fact* distanceToGCS      READ distanceToGCS      CONSTANT)
     Q_PROPERTY(Fact* hobbs              READ hobbs              CONSTANT)
     Q_PROPERTY(Fact* throttlePct        READ throttlePct        CONSTANT)
+    Q_PROPERTY(Fact* gimbalTargetSetLatitude   READ gimbalTargetSetLatitude   CONSTANT)
+    Q_PROPERTY(Fact* gimbalTargetSetLongitude  READ gimbalTargetSetLongitude  CONSTANT)
+    Q_PROPERTY(Fact* gimbalTargetSetAltitude   READ gimbalTargetSetAltitude   CONSTANT)
 
     Q_PROPERTY(FactGroup*           gps             READ gpsFactGroup               CONSTANT)
     Q_PROPERTY(FactGroup*           gps2            READ gps2FactGroup              CONSTANT)
@@ -443,6 +451,15 @@ public:
     Q_INVOKABLE void gimbalPitchStep    (int direction);
     Q_INVOKABLE void gimbalYawStep      (int direction);
     Q_INVOKABLE void centerGimbal       ();
+    Q_INVOKABLE void gimbalOnScreenControl(float panpct, float tiltpct, bool clickAndPoint, bool clickAndDrag, bool rateControl, bool retract = false, bool neutral = false, bool yawlock = false);
+    Q_INVOKABLE void sendGimbalManagerPitchYaw(float pan, float tilt);
+    void sendGimbalManagerPitchYawFlags(uint32_t flags);
+    Q_INVOKABLE void toggleGimbalRetracted   (bool force = false, bool set = false);
+    Q_INVOKABLE void toggleGimbalNeutral     (bool force = false, bool set = false);
+    Q_INVOKABLE void toggleGimbalYawLock     (bool force = false, bool set = false);
+    Q_INVOKABLE void setGimbalRcTargeting();
+    Q_INVOKABLE void setGimbalHomeTargeting();
+    
     Q_INVOKABLE void forceArm           ();
 
     /// Sends PARAM_MAP_RC message to vehicle
@@ -684,6 +701,9 @@ public:
     Fact* distanceToGCS                     () { return &_distanceToGCSFact; }
     Fact* hobbs                             () { return &_hobbsFact; }
     Fact* throttlePct                       () { return &_throttlePctFact; }
+    Fact* gimbalTargetSetLatitude           () { return &_gimbalTargetSetLatitudeFact; }
+    Fact* gimbalTargetSetLongitude          () { return &_gimbalTargetSetLongitudeFact; }
+    Fact* gimbalTargetSetAltitude           () { return &_gimbalTargetSetAltitudeFact; }
 
     FactGroup* gpsFactGroup                 () { return &_gpsFactGroup; }
     FactGroup* gps2FactGroup                () { return &_gps2FactGroup; }
@@ -862,6 +882,13 @@ public:
     bool        gimbalData              () const{ return _haveGimbalData; }
     bool        isROIEnabled            () const{ return _isROIEnabled; }
 
+    uint32_t    gimbalStatusFlags         ()   const{ return _gimbalStatusFlags; }
+    bool        gimbalRetracted           ()   const{ return _gimbalRetracted; }
+    bool        gimbalNeutral             ()   const{ return _gimbalNeutral; }
+    bool        gimbalYawLock             ()   const{ return _gimbalYawLock; }
+    bool        gimbalClickOnMapActive    ()   const{ return _gimbalClickOnMapActive; }
+    void        setGimbalClickOnMapActive(bool set) { _gimbalClickOnMapActive = set; }
+
     CheckList   checkListState          () { return _checkListState; }
     void        setCheckListState       (CheckList cl)  { _checkListState = cl; emit checkListStateChanged(); }
 
@@ -980,6 +1007,11 @@ signals:
     void gimbalPitchChanged             ();
     void gimbalYawChanged               ();
     void gimbalDataChanged              ();
+    void gimbalStatusFlagsChanged       ();
+    void gimbalRetractedChanged         ();
+    void gimbalNeutralChanged           ();
+    void gimbalYawLockChanged           ();
+    void gimbalClickOnMapActiveChanged  ();
     void isROIEnabledChanged            ();
     void initialConnectComplete         ();
 
@@ -1047,6 +1079,7 @@ private:
     void _handleOrbitExecutionStatus    (const mavlink_message_t& message);
     void _handleGimbalOrientation       (const mavlink_message_t& message);
     void _handleObstacleDistance        (const mavlink_message_t& message);
+    void _handleGimbalDeviceAttitudeStatus(const mavlink_message_t& message);
     void _handleEvent(uint8_t comp_id, std::unique_ptr<events::parser::ParsedEvent> event);
     // ArduPilot dialect messages
 #if !defined(NO_ARDUPILOT_DIALECT)
@@ -1209,6 +1242,16 @@ private:
     bool                _haveGimbalData = false;
     bool                _isROIEnabled   = false;
     Joystick*           _activeJoystick = nullptr;
+    uint32_t            _gimbalStatusFlags = 0;
+    bool                _gimbalRetracted = false;
+    bool                _gimbalNeutral = false;
+    bool                _gimbalYawLock = false;
+    bool                _roiApmCancelSent = false;
+    uint8_t             _gimbalPanChannel = 0;
+    uint8_t             _gimbalTiltChannel = 0;
+    uint8_t             _gimbalYawLockChannel = 0;
+    uint8_t             _gimbalRetractChannel = 0;
+    bool                _gimbalClickOnMapActive = false;
 
     bool _checkLatestStableFWDone = false;
     int _firmwareMajorVersion = versionNotSetValue;
@@ -1361,6 +1404,9 @@ private:
     Fact _distanceToGCSFact;
     Fact _hobbsFact;
     Fact _throttlePctFact;
+    Fact _gimbalTargetSetLatitudeFact;
+    Fact _gimbalTargetSetLongitudeFact;
+    Fact _gimbalTargetSetAltitudeFact;
 
     VehicleGPSFactGroup             _gpsFactGroup;
     VehicleGPS2FactGroup            _gps2FactGroup;
@@ -1415,6 +1461,9 @@ private:
     static const char* _distanceToGCSFactName;
     static const char* _hobbsFactName;
     static const char* _throttlePctFactName;
+    static const char* _gimbalTargetSetLatitudeFactName;
+    static const char* _gimbalTargetSetLongitudeFactName;
+    static const char* _gimbalTargetSetAltitudeFactName;
 
     static const char* _gpsFactGroupName;
     static const char* _gps2FactGroupName;
