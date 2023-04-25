@@ -51,6 +51,7 @@
 #include "VehicleBatteryFactGroup.h"
 #include "EventHandler.h"
 #include "Actuators/Actuators.h"
+#include "Gimbal/Gimbal.h"
 #ifdef QT_DEBUG
 #include "MockLink.h"
 #endif
@@ -493,6 +494,20 @@ void Vehicle::_commonInit()
         _settingsManager->videoSettings()->videoSource()->setRawValue(VideoSettings::videoSourceUDPH264);
         _settingsManager->videoSettings()->lowLatencyMode()->setRawValue(true);
     }
+
+    _gimbal = new Gimbal(this);
+
+    // Try to request the GIMBAL_MANAGER_INFORMATION message as it tells us that there is a gimbal manager to talk to.
+    requestMessage(
+            [](void* , MAV_RESULT commandResult, RequestMessageResultHandlerFailureCode_t failureCode, const mavlink_message_t& message) {
+                printf("Got result: %d\n", commandResult);
+            },
+                    nullptr,
+                    MAV_COMP_ID_AUTOPILOT1,
+                    MAVLINK_MSG_ID_GIMBAL_MANAGER_INFORMATION);
+
+    // 
+    sendMavCommand(MAV_COMP_ID_AUTOPILOT1, MAV_CMD_SET_MESSAGE_INTERVAL, false /* showError */, MAVLINK_MSG_ID_GIMBAL_MANAGER_STATUS, 1000000 /* 1 second interval in usec */);
 
     //-- Airspace Management
 #if defined(QGC_AIRMAP_ENABLED)
