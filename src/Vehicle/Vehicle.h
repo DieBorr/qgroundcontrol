@@ -74,7 +74,7 @@ class LinkManager;
 class InitialConnectStateMachine;
 class Autotune;
 class RemoteIDManager;
-class Gimbal;
+class GimbalController;
 
 #if defined(QGC_AIRMAP_ENABLED)
 class AirspaceVehicleManager;
@@ -246,7 +246,7 @@ public:
     Q_PROPERTY(quint64              mavlinkReceivedCount        READ mavlinkReceivedCount                                           NOTIFY mavlinkStatusChanged)
     Q_PROPERTY(quint64              mavlinkLossCount            READ mavlinkLossCount                                               NOTIFY mavlinkStatusChanged)
     Q_PROPERTY(float                mavlinkLossPercent          READ mavlinkLossPercent                                             NOTIFY mavlinkStatusChanged)
-    Q_PROPERTY(Gimbal*              gimbal                      READ gimbal                                                         NOTIFY gimbalChanged)
+    Q_PROPERTY(GimbalController*    gimbalController            READ gimbalController                                               NOTIFY gimbalControllerChanged)
     Q_PROPERTY(qreal                gimbalRoll                  READ gimbalRoll                                                     NOTIFY gimbalRollChanged)
     Q_PROPERTY(qreal                gimbalPitch                 READ gimbalPitch                                                    NOTIFY gimbalPitchChanged)
     Q_PROPERTY(qreal                gimbalYaw                   READ gimbalYaw                                                      NOTIFY gimbalYawChanged)
@@ -896,7 +896,7 @@ public:
     bool        gimbalYawLock             ()   const{ return _gimbalYawLock; }
     bool        gimbalClickOnMapActive    ()   const{ return _gimbalClickOnMapActive; }
     void        setGimbalClickOnMapActive(bool set) { _gimbalClickOnMapActive = set; }
-    Gimbal*     gimbal       () { return _gimbal; }
+    GimbalController* gimbalController    () { return _gimbalController; }
 
     CheckList   checkListState          () { return _checkListState; }
     void        setCheckListState       (CheckList cl)  { _checkListState = cl; emit checkListStateChanged(); }
@@ -1024,7 +1024,7 @@ signals:
     void isROIEnabledChanged            ();
     void gimbalHaveControlChanged       ();
     void gimbalOthersHaveControlChanged ();
-    void gimbalChanged                  ();
+    void gimbalControllerChanged        ();
     void initialConnectComplete         ();
 
     void sensorsParametersResetAck      (bool success);
@@ -1208,7 +1208,7 @@ private:
     ComponentInformationManager*    _componentInformationManager    = nullptr;
     VehicleObjectAvoidance*         _objectAvoidance                = nullptr;
     Autotune*                       _autotune                       = nullptr;
-    Gimbal*                         _gimbal                         = nullptr;
+    GimbalController*               _gimbalController               = nullptr;
 #if defined(QGC_AIRMAP_ENABLED)
     AirspaceVehicleManager*         _airspaceVehicleManager         = nullptr;
 #endif
