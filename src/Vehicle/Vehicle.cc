@@ -51,7 +51,7 @@
 #include "VehicleBatteryFactGroup.h"
 #include "EventHandler.h"
 #include "Actuators/Actuators.h"
-#include "Gimbal/GimbalController.h"
+#include "GimbalController.h"
 #ifdef QT_DEBUG
 #include "MockLink.h"
 #endif
@@ -497,18 +497,6 @@ void Vehicle::_commonInit()
 
     _gimbalController = new GimbalController(this);
 
-    // Try to request the GIMBAL_MANAGER_INFORMATION message as it tells us that there is a gimbal manager to talk to.
-    requestMessage(
-            [](void* , MAV_RESULT commandResult, RequestMessageResultHandlerFailureCode_t failureCode, const mavlink_message_t& message) {
-                printf("Got result: %d\n", commandResult);
-            },
-                    nullptr,
-                    MAV_COMP_ID_AUTOPILOT1,
-                    MAVLINK_MSG_ID_GIMBAL_MANAGER_INFORMATION);
-
-    // 
-    sendMavCommand(MAV_COMP_ID_AUTOPILOT1, MAV_CMD_SET_MESSAGE_INTERVAL, false /* showError */, MAVLINK_MSG_ID_GIMBAL_MANAGER_STATUS, 1000000 /* 1 second interval in usec */);
-
     //-- Airspace Management
 #if defined(QGC_AIRMAP_ENABLED)
     AirspaceManager* airspaceManager = _toolbox->airspaceManager();
@@ -794,9 +782,6 @@ void Vehicle::_mavlinkMessageReceived(LinkInterface* link, mavlink_message_t mes
         break;
     case MAVLINK_MSG_ID_OBSTACLE_DISTANCE:
         _handleObstacleDistance(message);
-        break;
-    case MAVLINK_MSG_ID_GIMBAL_DEVICE_ATTITUDE_STATUS:
-        _handleGimbalDeviceAttitudeStatus(message);
         break;
     case MAVLINK_MSG_ID_GIMBAL_MANAGER_STATUS:
         _handleGimbalManagerStatus(message);
