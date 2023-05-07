@@ -4386,7 +4386,7 @@ void Vehicle::setGimbalRcTargeting()
 
 void Vehicle::sendGimbalManagerPitchYawFlags(uint32_t flags)
 {
-    qDebug() << "flags to send: " << flags;
+    // qDebug() << "flags to send: " << flags;
 
     sendMavCommand(
                 _defaultComponentId,
